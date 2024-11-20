@@ -1,14 +1,16 @@
 import {
+  Body,
   Controller,
   Delete,
   Get,
   Param,
+  ParseIntPipe,
   Post,
   Put,
   Query,
 } from '@nestjs/common';
 import { HomeService } from './home.service';
-import { HomeResponseDto } from './dto/home.dto';
+import { CreateHomeDto, HomeResponseDto, UpdateHomeDto } from './dto/home.dto';
 
 @Controller('home')
 export class HomeController {
@@ -20,20 +22,42 @@ export class HomeController {
     @Query('maxPrice') maxPrice?: string,
     @Query('propertyType') propertyType?: string,
   ): Promise<HomeResponseDto[]> {
-    return this.homeService.getHomes();
+    const price =
+      minPrice || maxPrice
+        ? {
+            ...(minPrice && { gte: parseFloat(minPrice) }),
+            ...(maxPrice && { gte: parseFloat(maxPrice) }),
+          }
+        : undefined;
+
+    const filter = {
+      ...(city && { city }),
+      ...(price && { price }),
+      ...(propertyType && { property_type: propertyType }),
+    };
+    return this.homeService.getHomes(filter);
   }
 
   @Get(':id')
-  getHome(@Param('id') id: string) {
+  getHome(@Param('id', ParseIntPipe) id: number) {
     return this.homeService.getHome(id);
   }
 
   @Post()
-  createHome() {}
+  createHome(@Body() body: CreateHomeDto) {
+    return this.homeService.createHome(body);
+  }
 
   @Put(':id')
-  updateHome() {}
+  updateHome(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: UpdateHomeDto,
+  ) {
+    return this.homeService.updateHome(body, id);
+  }
 
   @Delete(':id')
-  deleteHome() {}
+  deleteHome(@Param('id', ParseIntPipe) id: number) {
+    return this.homeService.deleteHome(id);
+  }
 }
